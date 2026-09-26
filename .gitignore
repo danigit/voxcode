@@ -1,0 +1,56 @@
+# Dependency directories
+node_modules/
+
+# Build and distribution outputs
+dist/
+out/
+build/
+bin/
+*.spec
+*.vsix
+*.tsbuildinfo
+
+# Pre-trained models and large binary weights (bundled during packaging, excluded from git)
+models/
+*.bin
+
+
+# Worktrees and environments
+.worktrees/
+.env
+.env.local
+.env.*.local
+
+# Testing and coverage
+.vscode-test/
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS and Editor metadata
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sublime-workspace
+
+# Python cache & venvs
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Project specific
+marketing/
+.vscode/
+session_logs/

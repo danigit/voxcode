@@ -1,0 +1,247 @@
+{
+  "name": "voxcode",
+  "displayName": "VoxCode - Native Voice Dictation & AI Agent Steering",
+  "description": "Native voice dictation and terminal AI agent prompt steering bridge for VS Code with zero-latency buffer and terminal injection, powered by local Whisper.",
+  "version": "0.2.0",
+  "publisher": "voxcode",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#0F172A",
+    "theme": "dark"
+  },
+  "keywords": [
+    "voice",
+    "dictation",
+    "speech to text",
+    "whisper",
+    "faster-whisper",
+    "voice to code",
+    "terminal",
+    "ai agent",
+    "claude code",
+    "aider",
+    "cli agent",
+    "prompt dictation",
+    "copilot",
+    "transcription",
+    "local ai",
+    "accessibility"
+  ],
+  "categories": [
+    "AI",
+    "Chat",
+    "Programming Languages",
+    "Machine Learning"
+  ],
+  "badges": [
+    {
+      "url": "https://img.shields.io/badge/Privacy-100%25%20Offline-emerald?style=flat-square",
+      "href": "https://github.com/danigit/voxcode",
+      "description": "100% Offline"
+    },
+    {
+      "url": "https://img.shields.io/badge/Engine-faster--whisper-indigo?style=flat-square",
+      "href": "https://github.com/danigit/voxcode",
+      "description": "CTranslate2 Whisper"
+    },
+    {
+      "url": "https://img.shields.io/badge/License-MIT-slate?style=flat-square",
+      "href": "https://github.com/danigit/voxcode/blob/main/LICENSE",
+      "description": "MIT License"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danigit/voxcode.git"
+  },
+  "homepage": "https://github.com/danigit/voxcode#readme",
+  "bugs": {
+    "url": "https://github.com/danigit/voxcode/issues"
+  },
+  "qna": "marketplace",
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "voxcode.toggleDictation",
+        "title": "VoxCode: Toggle Dictation",
+        "category": "VoxCode",
+        "icon": "$(mic)"
+      },
+      {
+        "command": "voxcode.startRecording",
+        "title": "VoxCode: Start Dictation",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.stopRecording",
+        "title": "VoxCode: Stop Dictation",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.cancelDictation",
+        "title": "VoxCode: Cancel Dictation",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.startDaemon",
+        "title": "VoxCode: Start Daemon",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.restartDaemon",
+        "title": "VoxCode: Restart Background Daemon",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.showDaemonLogs",
+        "title": "VoxCode: Show Daemon Output Logs",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.reconnect",
+        "title": "VoxCode: Reconnect to Bridge",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.configureKeybinding",
+        "title": "VoxCode: Configure Keyboard Shortcut",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.handleError",
+        "title": "VoxCode: Troubleshoot & Restart Daemon",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.installCudaRuntime",
+        "title": "VoxCode: Download & Install NVIDIA CUDA 12 Runtime",
+        "category": "VoxCode"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "voxcode.toggleDictation",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v",
+        "when": "editorTextFocus",
+        "args": {
+          "target": "editor"
+        }
+      },
+      {
+        "command": "voxcode.toggleDictation",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v",
+        "when": "terminalFocus",
+        "args": {
+          "target": "terminal"
+        }
+      },
+      {
+        "command": "voxcode.cancelDictation",
+        "key": "escape",
+        "when": "voxcode.isRecording"
+      }
+    ],
+    "configuration": {
+      "title": "VoxCode",
+      "properties": {
+        "voxcode.modelSize": {
+          "type": "string",
+          "enum": [
+            "base",
+            "base.en",
+            "small",
+            "small.en",
+            "large-v3-turbo"
+          ],
+          "default": "base",
+          "description": "Whisper model size for transcription. 'base' supports multiple languages (English/Italian); 'base.en' is English-only."
+        },
+        "voxcode.device": {
+          "type": "string",
+          "enum": [
+            "cpu",
+            "cuda"
+          ],
+          "default": "cpu",
+          "description": "Compute device for speech recognition ('cpu' for universal compatibility, 'cuda' for NVIDIA GPUs)."
+        },
+        "voxcode.computeType": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "float16",
+            "int8_float16",
+            "int8",
+            "float32"
+          ],
+          "default": "auto",
+          "description": "Quantization compute type for inference ('auto' automatically selects float16 for CUDA and int8 for CPU)."
+        },
+        "voxcode.serverUrl": {
+          "type": "string",
+          "default": "ws://127.0.0.1:7355",
+          "description": "WebSocket bridge server URL for custom daemon endpoints."
+        },
+        "voxcode.codeMode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically format speech for code (lowercase keywords, suppress trailing periods) in code files."
+        },
+        "voxcode.terminalAutoSubmit": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically submit commands with a newline when dictating into the terminal."
+        },
+        "voxcode.autoStartDaemon": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically attempt to launch VoxCode daemon if connection is refused."
+        },
+        "voxcode.daemonDirectory": {
+          "type": "string",
+          "scope": "machine",
+          "default": "",
+          "description": "Optional custom directory containing voxcode-daemon executable or headless_daemon.py."
+        },
+        "voxcode.cudaDownloadUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Optional custom URL or mirror to download CUDA 12 runtime archive (.zip or .whl). Leave empty for automated official sources."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "node esbuild.js --production",
+    "compile": "tsc -p ./ --noEmit",
+    "build": "node esbuild.js",
+    "build:production": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "build:daemon": "python server/build_headless.py --copy-to ./bin/win32-x64",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "package:win32": "npx @vscode/vsce package --target win32-x64 --no-dependencies",
+    "package:darwin-arm64": "npx @vscode/vsce package --target darwin-arm64 --no-dependencies",
+    "package:darwin-x64": "npx @vscode/vsce package --target darwin-x64 --no-dependencies",
+    "package:linux-x64": "npx @vscode/vsce package --target linux-x64 --no-dependencies",
+    "test": "node esbuild.test.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.5.10",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.3"
+  }
+}
