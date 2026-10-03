@@ -12,6 +12,7 @@ import { extLog, initLogger, disposeLogger } from './logger';
 let supervisor: ProcessSupervisor | null = null;
 let client: VoxCodeClient | null = null;
 let statusBarItem: vscode.StatusBarItem | null = null;
+let autoSubmitStatusBarItem: vscode.StatusBarItem | null = null;
 let focusTracker: FocusTracker | null = null;
 let ghostTextManager: GhostTextManager | null = null;
 let extensionContext: vscode.ExtensionContext | null = null;
@@ -36,7 +37,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   focusTracker = new FocusTracker();
   ghostTextManager = new GhostTextManager();
 
-  // Create Status Bar Item
+  // Create Primary Dictation Status Bar Item
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100
@@ -44,7 +45,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   updateStatusBar('offline');
   statusBarItem.show();
 
+  // Create Terminal Auto-Submit Mode Status Bar Item (Priority 99 right next to mic)
+  autoSubmitStatusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    99
+  );
+  updateAutoSubmitStatusBar();
+  autoSubmitStatusBarItem.show();
+
   context.subscriptions.push(statusBarItem);
+  context.subscriptions.push(autoSubmitStatusBarItem);
   context.subscriptions.push(focusTracker);
   context.subscriptions.push(ghostTextManager);
 
@@ -117,6 +127,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         if (supervisor && supervisor.isRunning()) {
           await supervisor.restart();
         }
+      }
+
+      if (e.affectsConfiguration('voxcode.terminalAutoSubmit')) {
+        updateAutoSubmitStatusBar();
       }
     })
   );
@@ -555,6 +569,24 @@ function registerCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('voxcode.installCudaRuntime', installCudaHandler)
   );
+
+  // 12. Toggle Terminal Auto-Submit (Auto-Enter vs Review Mode)
+  const toggleAutoSubmitHandler = async () => {
+    const voxConfig = vscode.workspace.getConfiguration('voxcode');
+    const current = voxConfig.get<boolean>('terminalAutoSubmit', false);
+    const updated = !current;
+    await voxConfig.update('terminalAutoSubmit', updated, vscode.ConfigurationTarget.Global);
+    updateAutoSubmitStatusBar();
+
+    const statusDesc = updated
+      ? 'ENABLED (Auto-Enter — executes immediately)'
+      : 'DISABLED (Review Mode — prompts stay on line)';
+    vscode.window.setStatusBarMessage(`VoxCode: Terminal Auto-Submit ${statusDesc}`, 4000);
+    extLog('INFO', 'Toggled voxcode.terminalAutoSubmit', { terminalAutoSubmit: updated });
+  };
+  context.subscriptions.push(
+    vscode.commands.registerCommand('voxcode.toggleTerminalAutoSubmit', toggleAutoSubmitHandler)
+  );
 }
 
 function startRecording(targetHint?: 'editor' | 'terminal'): void {
@@ -727,11 +759,31 @@ function updateStatusBar(state: StatusBarState, metadata?: StatusMetadata): void
   }
 }
 
+function updateAutoSubmitStatusBar(): void {
+  if (!autoSubmitStatusBarItem) {
+    return;
+  }
+  const voxConfig = vscode.workspace.getConfiguration('voxcode');
+  const autoSubmit = voxConfig.get<boolean>('terminalAutoSubmit', false);
+
+  if (autoSubmit) {
+    autoSubmitStatusBarItem.text = '$(terminal) ↵ Auto-Enter';
+    autoSubmitStatusBarItem.tooltip =
+      'VoxCode: Terminal Auto-Submit is ENABLED (commands execute immediately with Enter).\nClick to switch to Review Mode.';
+  } else {
+    autoSubmitStatusBarItem.text = '$(terminal) Review';
+    autoSubmitStatusBarItem.tooltip =
+      'VoxCode: Terminal Auto-Submit is DISABLED (Review Mode: prompts remain on prompt for inspection).\nClick to switch to Auto-Enter.';
+  }
+  autoSubmitStatusBarItem.command = 'voxcode.toggleTerminalAutoSubmit';
+}
+
 export function deactivate(): void {
   ghostTextManager?.dispose();
   focusTracker?.dispose();
   client?.dispose();
   supervisor?.dispose();
+  autoSubmitStatusBarItem?.dispose();
   statusBarItem?.dispose();
   disposeLogger();
 }

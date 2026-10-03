@@ -85,6 +85,12 @@
         "category": "VoxCode"
       },
       {
+        "command": "voxcode.toggleTerminalAutoSubmit",
+        "title": "VoxCode: Toggle Terminal Auto-Submit (Auto-Enter / Review)",
+        "category": "VoxCode",
+        "icon": "$(terminal)"
+      },
+      {
         "command": "voxcode.startRecording",
         "title": "VoxCode: Start Dictation",
         "category": "VoxCode"

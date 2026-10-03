@@ -27,9 +27,10 @@ Zero-configuration, 100% offline native voice dictation and AI agent prompt stee
 
 ### Pillar 2: Terminal AI Agent Prompt Steering
 - **Conversational Speed for CLI Agents:** Dictate multi-paragraph prompts and architectural instructions directly into **Antigravity CLI (`agy`)**, **Claude Code**, **Aider**, **OpenHands**, and **Copilot CLI** at 150 words per minute.
-- **Dual Submission Modes:**
+- **Dual Submission Modes (1-Click Status Bar Toggle):**
   - **Review Mode (`voxcode.terminalAutoSubmit: false` - Default):** Dictated text lands on the terminal command line for inspection, editing, or adding flags before pressing `Enter`.
   - **Auto-Submit Mode (`voxcode.terminalAutoSubmit: true`):** Dictated text is automatically committed with a trailing newline for a 100% hands-free conversational loop.
+  - **1-Click Quick Toggle:** Click `$(terminal) Review` / `$(terminal) ↵ Auto-Enter` directly on the bottom status bar (or run `VoxCode: Toggle Terminal Auto-Submit`) to switch modes anytime without opening settings.
 - **PTY Newline Sanitization:** Automatically collapses speech linebreaks into spaces, preventing premature execution of half-spoken prompts in interactive shells.
 - **Verbal Hesitation Removal:** Filters out "um", "uh", and "ah" stutters, saving LLM context tokens and keeping instructions crisp.
 - **Terminal Isolation:** Automatically suppresses editor ghost text decorations when terminal focus is active to prevent visual leaks.

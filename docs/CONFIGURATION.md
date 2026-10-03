@@ -49,6 +49,7 @@ These commands are registered in VS Code's command palette (`Ctrl+Shift+P` / `Cm
 | `voxcode.showDaemonLogs` | **VoxCode: Show Daemon Output Logs** | Opens the daemon log output channel in VS Code. |
 | `voxcode.reconnect` | **VoxCode: Reconnect to Bridge** | Forces an immediate reconnect to the WebSocket daemon bridge. |
 | `voxcode.configureKeybinding` | **VoxCode: Configure Keyboard Shortcut** | Opens keyboard shortcuts settings focused on dictation. |
+| `voxcode.toggleTerminalAutoSubmit` | **VoxCode: Toggle Terminal Auto-Submit (Auto-Enter / Review)** | Toggles terminal auto-submit on/off without opening settings and updates the status bar button. |
 | `voxcode.installCudaRuntime` | **VoxCode: Download & Install NVIDIA CUDA 12 Runtime** | Downloads and configures CUDA 12 DLLs for GPU acceleration. |
 
 ---
@@ -133,3 +134,12 @@ VoxCode displays a dedicated item in the VS Code status bar (bottom right):
 | `$(record) VoxCode: Listening...` | Listening | Microphone active. Click to finish recording. |
 | `$(loading~spin) VoxCode: Transcribing...` | Transcribing | Whisper speech-to-text inference running. |
 | `$(error) VoxCode: Error` | Error | An error occurred. Click to reconnect. |
+
+### Terminal Auto-Submit Status Bar Button (Bottom Right)
+
+Located immediately adjacent to the main mic status item:
+
+| Button Display | Mode | Action on Click |
+| :--- | :--- | :--- |
+| `$(terminal) ↵ Auto-Enter` | Auto-Enter Active | Instantly switches to **Review Mode** |
+| `$(terminal) Review` | Review Mode Active | Instantly switches to **Auto-Enter Mode** |
