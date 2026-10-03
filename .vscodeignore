@@ -9,7 +9,6 @@ docs/**
 tsconfig.json
 esbuild.js
 esbuild.test.js
-STANDALONE_SPECIFICATION_AND_PLAN.md
 **/*.map
 server/**/__pycache__/**
 server/**/*.pyc
@@ -25,4 +24,4 @@ voxcode-daemon.spec
 __pycache__/**
 **/__pycache__/**
 media/hero_banner.png
-VOXCODE_AUDIT_AND_REMEDIATION_PLAN.md
+

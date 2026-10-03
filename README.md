@@ -164,6 +164,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for deep-dive technical details
 - [**Setup & Development Guide**](docs/SETUP_GUIDE.md): Local development workflow, build commands, and test suite.
 - [**Configuration Reference**](docs/CONFIGURATION.md): Complete list of configuration settings, commands, and keybindings.
 - [**WebSocket Protocol Specification**](docs/PROTOCOL.md): JSON protocol specification for daemon events and authentication.
+- [**Changelog**](CHANGELOG.md): Release notes and version history.
 
 ---
 
@@ -179,7 +180,7 @@ npm run compile
 # Bundle with esbuild
 npm run build
 
-# Run test suite (45 unit and integration tests)
+# Run test suite (60 unit and integration tests)
 npm test
 
 # Package standalone VSIX extension
