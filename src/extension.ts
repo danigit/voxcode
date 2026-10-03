@@ -12,7 +12,6 @@ import { extLog, initLogger, disposeLogger } from './logger';
 let supervisor: ProcessSupervisor | null = null;
 let client: VoxCodeClient | null = null;
 let statusBarItem: vscode.StatusBarItem | null = null;
-let autoSubmitStatusBarItem: vscode.StatusBarItem | null = null;
 let focusTracker: FocusTracker | null = null;
 let ghostTextManager: GhostTextManager | null = null;
 let extensionContext: vscode.ExtensionContext | null = null;
@@ -45,16 +44,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   updateStatusBar('offline');
   statusBarItem.show();
 
-  // Create Terminal Auto-Submit Mode Status Bar Item (Priority 99 right next to mic)
-  autoSubmitStatusBarItem = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    99
-  );
-  updateAutoSubmitStatusBar();
-  autoSubmitStatusBarItem.show();
-
   context.subscriptions.push(statusBarItem);
-  context.subscriptions.push(autoSubmitStatusBarItem);
   context.subscriptions.push(focusTracker);
   context.subscriptions.push(ghostTextManager);
 
@@ -130,7 +120,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       if (e.affectsConfiguration('voxcode.terminalAutoSubmit')) {
-        updateAutoSubmitStatusBar();
+        updateStatusBar(client?.isAuthenticated ? 'ready' : 'offline');
       }
     })
   );
@@ -576,7 +566,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     const current = voxConfig.get<boolean>('terminalAutoSubmit', false);
     const updated = !current;
     await voxConfig.update('terminalAutoSubmit', updated, vscode.ConfigurationTarget.Global);
-    updateAutoSubmitStatusBar();
+    updateStatusBar(client?.isAuthenticated ? 'ready' : 'offline');
 
     const statusDesc = updated
       ? 'ENABLED (Auto-Enter — executes immediately)'
@@ -587,6 +577,80 @@ function registerCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('voxcode.toggleTerminalAutoSubmit', toggleAutoSubmitHandler)
   );
+
+  // 13. Show VoxCode Menu & Controls
+  context.subscriptions.push(
+    vscode.commands.registerCommand('voxcode.showMenu', showVoxCodeMenu)
+  );
+}
+
+async function showVoxCodeMenu(): Promise<void> {
+  const voxConfig = vscode.workspace.getConfiguration('voxcode');
+  const autoSubmit = voxConfig.get<boolean>('terminalAutoSubmit', false);
+  const hotkey = process.platform === 'darwin' ? 'Cmd+Option+V' : 'Ctrl+Alt+V';
+
+  const items: Array<vscode.QuickPickItem & { action: () => Promise<void> | void }> = [
+    {
+      label: autoSubmit
+        ? '$(check) Terminal Auto-Submit: ON (Auto-Enter)'
+        : '$(circle-outline) Terminal Auto-Submit: OFF (Review Mode)',
+      description: autoSubmit ? 'Click to switch to Review Mode' : 'Click to switch to Auto-Enter',
+      detail: autoSubmit
+        ? 'Speech in terminal is automatically executed with Enter.'
+        : 'Speech in terminal remains on prompt for inspection before pressing Enter.',
+      action: async () => {
+        await vscode.commands.executeCommand('voxcode.toggleTerminalAutoSubmit');
+      },
+    },
+    {
+      label: isRecording ? '$(primitive-square) Stop Voice Dictation' : '$(record) Start Voice Dictation',
+      description: hotkey,
+      detail: 'Record speech and inject into active editor or terminal.',
+      action: () => {
+        vscode.commands.executeCommand('voxcode.toggleDictation');
+      },
+    },
+    {
+      label: '$(gear) Configure Keyboard Shortcut',
+      detail: 'Open Keyboard Shortcuts editor to customize VoxCode hotkeys.',
+      action: () => {
+        vscode.commands.executeCommand('voxcode.configureKeybinding');
+      },
+    },
+    {
+      label: '$(output) Show Daemon Output Logs',
+      detail: 'View speech recognition daemon output and connection logs.',
+      action: () => {
+        vscode.commands.executeCommand('voxcode.showDaemonLogs');
+      },
+    },
+    {
+      label: '$(sync) Restart Background Daemon',
+      detail: 'Restart local Whisper speech engine.',
+      action: () => {
+        vscode.commands.executeCommand('voxcode.restartDaemon');
+      },
+    },
+  ];
+
+  if (CudaManager.isNvidiaGpuPresent() && extensionContext && !CudaManager.isCudaRuntimeInstalled(extensionContext)) {
+    items.push({
+      label: '$(cloud-download) Install NVIDIA CUDA 12 Runtime',
+      detail: 'Download official CUDA 12 DLLs for GPU acceleration.',
+      action: () => {
+        vscode.commands.executeCommand('voxcode.installCudaRuntime');
+      },
+    });
+  }
+
+  const selected = await vscode.window.showQuickPick(items, {
+    placeHolder: 'Select a VoxCode action or toggle settings',
+    title: 'VoxCode: Native Voice Dictation & AI Agent Steering',
+  });
+
+  if (selected) {
+    await selected.action();
+  }
 }
 
 function startRecording(targetHint?: 'editor' | 'terminal'): void {
@@ -714,26 +778,37 @@ function updateStatusBar(state: StatusBarState, metadata?: StatusMetadata): void
       break;
 
     case 'ready':
+      const voxConfig = vscode.workspace.getConfiguration('voxcode');
+      const autoSubmit = voxConfig.get<boolean>('terminalAutoSubmit', false);
+      const modeBadge = autoSubmit ? '[↵ Auto]' : '[✎ Review]';
+      const autoSubmitDesc = autoSubmit
+        ? 'Terminal Auto-Submit is ENABLED (Auto-Enter)'
+        : 'Terminal Auto-Submit is DISABLED (Review Mode)';
+
       if (hasFallback) {
-        statusBarItem.text = '$(mic) VoxCode: Ready (CPU Fallback)';
-        statusBarItem.tooltip =
-          `VoxCode Ready on CPU (${model || 'model'}).\nWarning: CUDA failed (${lastStatusMetadata.fallback_reason || client?.cudaFallbackReason}). Click to start dictation (${hotkey}).`;
+        statusBarItem.text = `$(mic) VoxCode: Ready (CPU Fallback) ${modeBadge}`;
       } else if (isCuda) {
-        statusBarItem.text = '$(mic) VoxCode: Ready (CUDA)';
-        statusBarItem.tooltip =
-          `VoxCode Ready on NVIDIA GPU (${model || 'model'} / ${lastStatusMetadata.compute_type || client?.activeComputeType || 'float16'}). Click to start dictation (${hotkey}).`;
+        statusBarItem.text = `$(mic) VoxCode: Ready (CUDA) ${modeBadge}`;
       } else {
-        statusBarItem.text = '$(mic) VoxCode: Ready (CPU)';
-        statusBarItem.tooltip =
-          `VoxCode Ready on CPU (${model || 'model'} / ${lastStatusMetadata.compute_type || client?.activeComputeType || 'int8'}). Click to start dictation (${hotkey}).`;
+        statusBarItem.text = `$(mic) VoxCode: Ready ${modeBadge}`;
       }
-      statusBarItem.command = 'voxcode.toggleDictation';
+
+      const tooltipMd = new vscode.MarkdownString();
+      tooltipMd.isTrusted = true;
+      tooltipMd.appendMarkdown(`### $(mic) VoxCode: Native Voice Dictation (Ready)\n\n`);
+      tooltipMd.appendMarkdown(`- **Terminal Mode:** \`${autoSubmit ? 'Auto-Enter (Immediate Execution)' : 'Review Mode (Manual Enter)'}\`\n`);
+      tooltipMd.appendMarkdown(`- **Speech Engine:** ${model || 'model'} (${isCuda ? 'NVIDIA CUDA' : 'CPU'})\n`);
+      tooltipMd.appendMarkdown(`- **Dictation Shortcut:** \`${hotkey}\`\n\n`);
+      tooltipMd.appendMarkdown(`---\n\n*Click to open VoxCode menu & toggle settings.*`);
+
+      statusBarItem.tooltip = tooltipMd;
+      statusBarItem.command = 'voxcode.showMenu';
       statusBarItem.backgroundColor = undefined;
       break;
 
     case 'listening':
       statusBarItem.text = '$(record) VoxCode: Listening...';
-      statusBarItem.tooltip = 'VoxCode is listening. Click to finish speech.';
+      statusBarItem.tooltip = 'VoxCode is listening. Click to finish recording.';
       statusBarItem.command = 'voxcode.stopRecording';
       statusBarItem.backgroundColor = new vscode.ThemeColor(
         'statusBarItem.warningBackground'
@@ -759,31 +834,11 @@ function updateStatusBar(state: StatusBarState, metadata?: StatusMetadata): void
   }
 }
 
-function updateAutoSubmitStatusBar(): void {
-  if (!autoSubmitStatusBarItem) {
-    return;
-  }
-  const voxConfig = vscode.workspace.getConfiguration('voxcode');
-  const autoSubmit = voxConfig.get<boolean>('terminalAutoSubmit', false);
-
-  if (autoSubmit) {
-    autoSubmitStatusBarItem.text = '$(terminal) ↵ Auto-Enter';
-    autoSubmitStatusBarItem.tooltip =
-      'VoxCode: Terminal Auto-Submit is ENABLED (commands execute immediately with Enter).\nClick to switch to Review Mode.';
-  } else {
-    autoSubmitStatusBarItem.text = '$(terminal) Review';
-    autoSubmitStatusBarItem.tooltip =
-      'VoxCode: Terminal Auto-Submit is DISABLED (Review Mode: prompts remain on prompt for inspection).\nClick to switch to Auto-Enter.';
-  }
-  autoSubmitStatusBarItem.command = 'voxcode.toggleTerminalAutoSubmit';
-}
-
 export function deactivate(): void {
   ghostTextManager?.dispose();
   focusTracker?.dispose();
   client?.dispose();
   supervisor?.dispose();
-  autoSubmitStatusBarItem?.dispose();
   statusBarItem?.dispose();
   disposeLogger();
 }

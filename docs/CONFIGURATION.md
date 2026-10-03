@@ -49,7 +49,8 @@ These commands are registered in VS Code's command palette (`Ctrl+Shift+P` / `Cm
 | `voxcode.showDaemonLogs` | **VoxCode: Show Daemon Output Logs** | Opens the daemon log output channel in VS Code. |
 | `voxcode.reconnect` | **VoxCode: Reconnect to Bridge** | Forces an immediate reconnect to the WebSocket daemon bridge. |
 | `voxcode.configureKeybinding` | **VoxCode: Configure Keyboard Shortcut** | Opens keyboard shortcuts settings focused on dictation. |
-| `voxcode.toggleTerminalAutoSubmit` | **VoxCode: Toggle Terminal Auto-Submit (Auto-Enter / Review)** | Toggles terminal auto-submit on/off without opening settings and updates the status bar button. |
+| `voxcode.toggleTerminalAutoSubmit` | **VoxCode: Toggle Terminal Auto-Submit (Auto-Enter / Review)** | Toggles terminal auto-submit on/off without opening settings and updates the status bar widget. |
+| `voxcode.showMenu` | **VoxCode: Show Menu & Controls** | Opens a QuickPick control menu to toggle Auto-Enter mode, trigger dictation, customize shortcuts, view daemon logs, or restart the engine. |
 | `voxcode.installCudaRuntime` | **VoxCode: Download & Install NVIDIA CUDA 12 Runtime** | Downloads and configures CUDA 12 DLLs for GPU acceleration. |
 
 ---
@@ -124,22 +125,26 @@ The extension updates internal VS Code context keys that you can use in custom `
 
 ## 5. Status Bar Indicators
 
-VoxCode displays a dedicated item in the VS Code status bar (bottom right):
+To avoid status bar clutter and keep your workspace tidy, VoxCode uses a **single, unified status bar item** (bottom right) that displays connection state, engine info, and current terminal submission mode:
 
-| Status Bar Display | State | Meaning |
+| Status Bar Display | State | Meaning & Click Action |
 | :--- | :--- | :--- |
 | `$(mic-off) VoxCode: Offline` | Offline | Daemon is offline. Click to launch daemon. |
 | `$(sync~spin) VoxCode: Loading Model...` | Model Loading | Whisper model is downloading/loading. Click to show logs. |
-| `$(mic) VoxCode: Ready` | Ready | Authenticated and awaiting dictation. Click to start. |
+| `$(mic) VoxCode: Ready [↵ Auto]` | Ready (Auto-Enter) | Speech sent to terminal executes immediately. Click to open VoxCode QuickMenu. |
+| `$(mic) VoxCode: Ready [✎ Review]` | Ready (Review Mode) | Speech sent to terminal stays on prompt for inspection. Click to open VoxCode QuickMenu. |
+| `$(mic) VoxCode: Ready (CUDA) [...]` | Ready on GPU | NVIDIA GPU acceleration active with CUDA 12. Click to open VoxCode QuickMenu. |
+| `$(mic) VoxCode: Ready (CPU Fallback) [...]` | Ready on CPU | GPU initialization failed; running on CPU. Click to open VoxCode QuickMenu. |
 | `$(record) VoxCode: Listening...` | Listening | Microphone active. Click to finish recording. |
 | `$(loading~spin) VoxCode: Transcribing...` | Transcribing | Whisper speech-to-text inference running. |
 | `$(error) VoxCode: Error` | Error | An error occurred. Click to reconnect. |
 
-### Terminal Auto-Submit Status Bar Button (Bottom Right)
+### VoxCode QuickMenu (`voxcode.showMenu`)
 
-Located immediately adjacent to the main mic status item:
-
-| Button Display | Mode | Action on Click |
-| :--- | :--- | :--- |
-| `$(terminal) ↵ Auto-Enter` | Auto-Enter Active | Instantly switches to **Review Mode** |
-| `$(terminal) Review` | Review Mode Active | Instantly switches to **Auto-Enter Mode** |
+Clicking the unified status bar item when ready opens a QuickPick menu that lets you:
+- **Toggle Terminal Auto-Submit**: Switch between `[↵ Auto]` (Auto-Enter) and `[✎ Review]` (Manual Enter) in 1 click.
+- **Start / Stop Voice Dictation**: Manually trigger voice recording.
+- **Configure Keyboard Shortcut**: Open VS Code Keyboard Shortcuts UI focused on VoxCode.
+- **Show Daemon Output Logs**: Inspect real-time speech recognition logs.
+- **Restart Background Daemon**: Refresh the Whisper backend process.
+- **Download & Install CUDA 12 Runtime**: Easily set up GPU acceleration if an NVIDIA card is detected.

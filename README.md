@@ -27,10 +27,10 @@ Zero-configuration, 100% offline native voice dictation and AI agent prompt stee
 
 ### Pillar 2: Terminal AI Agent Prompt Steering
 - **Conversational Speed for CLI Agents:** Dictate multi-paragraph prompts and architectural instructions directly into **Antigravity CLI (`agy`)**, **Claude Code**, **Aider**, **OpenHands**, and **Copilot CLI** at 150 words per minute.
-- **Dual Submission Modes (1-Click Status Bar Toggle):**
-  - **Review Mode (`voxcode.terminalAutoSubmit: false` - Default):** Dictated text lands on the terminal command line for inspection, editing, or adding flags before pressing `Enter`.
-  - **Auto-Submit Mode (`voxcode.terminalAutoSubmit: true`):** Dictated text is automatically committed with a trailing newline for a 100% hands-free conversational loop.
-  - **1-Click Quick Toggle:** Click `$(terminal) Review` / `$(terminal) ↵ Auto-Enter` directly on the bottom status bar (or run `VoxCode: Toggle Terminal Auto-Submit`) to switch modes anytime without opening settings.
+- **Dual Submission Modes (Unified Status Bar Control):**
+  - **Review Mode (`voxcode.terminalAutoSubmit: false` - Default):** Dictated text lands on the terminal command line for inspection, editing, or adding flags before pressing `Enter`. Badge displays `[✎ Review]`.
+  - **Auto-Submit Mode (`voxcode.terminalAutoSubmit: true`):** Dictated text is automatically committed with a trailing newline for a 100% hands-free conversational loop. Badge displays `[↵ Auto]`.
+  - **Single Compact Status Bar Widget:** Click the unified `$(mic) VoxCode: Ready [✎ Review]` or `[↵ Auto]` status bar item to open the VoxCode QuickMenu (toggle Auto-Enter, trigger dictation, customize shortcuts, view logs), or run `VoxCode: Toggle Terminal Auto-Submit` from the Command Palette.
 - **PTY Newline Sanitization:** Automatically collapses speech linebreaks into spaces, preventing premature execution of half-spoken prompts in interactive shells.
 - **Verbal Hesitation Removal:** Filters out "um", "uh", and "ah" stutters, saving LLM context tokens and keeping instructions crisp.
 - **Terminal Isolation:** Automatically suppresses editor ghost text decorations when terminal focus is active to prevent visual leaks.
@@ -56,8 +56,9 @@ code --profile "work" --install-extension voxcode-0.2.0.vsix
 
 ### Quick Verification
 1. Reload your window: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> -> **`Developer: Reload Window`**.
-2. Look at the bottom-right status bar: **`$(mic) VoxCode: Ready`** confirms the background engine is active.
-3. Press <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>V</kbd> (or <kbd>Cmd</kbd> + <kbd>Alt</kbd> + <kbd>V</kbd> on macOS) to dictate directly into code or the terminal!
+2. Look at the bottom-right status bar: **`$(mic) VoxCode: Ready [✎ Review]`** confirms the background engine is active.
+3. Click the status bar widget anytime to open the VoxCode menu and toggle settings.
+4. Press <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>V</kbd> (or <kbd>Cmd</kbd> + <kbd>Alt</kbd> + <kbd>V</kbd> on macOS) to dictate directly into code or the terminal!
 
 ---
 

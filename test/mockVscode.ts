@@ -242,6 +242,8 @@ export const mockWindow = {
   showErrorMessage: async () => undefined,
   showInformationMessage: async () => undefined,
   showWarningMessage: async () => undefined,
+  showQuickPick: async () => undefined,
+  setStatusBarMessage: () => new Disposable(() => {}),
 };
 
 export const window = mockWindow;

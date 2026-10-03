@@ -91,6 +91,12 @@
         "icon": "$(terminal)"
       },
       {
+        "command": "voxcode.showMenu",
+        "title": "VoxCode: Show Controls & Settings Menu",
+        "category": "VoxCode",
+        "icon": "$(mic)"
+      },
+      {
         "command": "voxcode.startRecording",
         "title": "VoxCode: Start Dictation",
         "category": "VoxCode"
