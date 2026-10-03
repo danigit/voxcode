@@ -29,6 +29,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   extLog('INFO', 'VoxCode extension activate() called');
   console.log('[VoxCode] Activating VoxCode extension...');
 
+  // Automatically ensure terminal commands are not swallowed by integrated terminal shells
+  await ensureTerminalCommandsSkipShell();
+
   // Initialize focus tracker and ghost text decorator
   focusTracker = new FocusTracker();
   ghostTextManager = new GhostTextManager();
@@ -122,6 +125,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   await startSupervisorAndClient();
 
   console.log('[VoxCode] VoxCode extension activated successfully.');
+}
+
+/**
+ * Automatically ensures VoxCode dictation shortcuts are whitelisted in
+ * terminal.integrated.commandsToSkipShell so integrated terminal shells
+ * (PowerShell, bash, zsh) do not intercept or swallow keybindings.
+ */
+async function ensureTerminalCommandsSkipShell(): Promise<void> {
+  try {
+    const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated');
+    const current = terminalConfig.get<string[]>('commandsToSkipShell') || [];
+    const required = [
+      'voxcode.toggleDictation',
+      'voxcode.toggleTerminalDictation',
+      'voxcode.toggleEditorDictation',
+      'voxcode.cancelDictation',
+      'voxcode.stopRecording',
+    ];
+    const missing = required.filter((cmd) => !current.includes(cmd));
+
+    if (missing.length > 0) {
+      const updated = [...current, ...missing];
+      await terminalConfig.update('commandsToSkipShell', updated, vscode.ConfigurationTarget.Global);
+      extLog('INFO', 'Registered VoxCode commands in terminal.integrated.commandsToSkipShell', { added: missing });
+    }
+  } catch (err: any) {
+    extLog('WARN', 'Failed to update terminal.integrated.commandsToSkipShell automatically', { error: err?.message });
+  }
 }
 
 async function startSupervisorAndClient(): Promise<void> {
@@ -350,8 +381,15 @@ function setupClientEvents(context: vscode.ExtensionContext): void {
 }
 
 function registerCommands(context: vscode.ExtensionContext): void {
-  // 1. Toggle Dictation (Ctrl+Alt+V)
+  // 1. Toggle Dictation (Universal primary toggle)
   const toggleHandler = (args?: { target?: 'editor' | 'terminal' }) => {
+    extLog('INFO', 'Command voxcode.toggleDictation triggered', {
+      args,
+      hasActiveEditor: Boolean(vscode.window.activeTextEditor),
+      hasActiveTerminal: Boolean(vscode.window.activeTerminal),
+      activeTerminalName: vscode.window.activeTerminal?.name,
+    });
+
     if (args?.target === 'terminal') {
       focusTracker?.markTerminalFocused();
     } else if (args?.target === 'editor') {
@@ -368,8 +406,26 @@ function registerCommands(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('voxcode.toggleDictation', toggleHandler)
   );
 
+  // Dedicated Target Commands (for users binding explicit keys)
+  context.subscriptions.push(
+    vscode.commands.registerCommand('voxcode.toggleEditorDictation', () =>
+      toggleHandler({ target: 'editor' })
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('voxcode.toggleTerminalDictation', () =>
+      toggleHandler({ target: 'terminal' })
+    )
+  );
+
   // 2. Start Dictation
   const startHandler = (args?: { target?: 'editor' | 'terminal' }) => {
+    extLog('INFO', 'Command voxcode.startRecording triggered', {
+      args,
+      hasActiveEditor: Boolean(vscode.window.activeTextEditor),
+      hasActiveTerminal: Boolean(vscode.window.activeTerminal),
+      activeTerminalName: vscode.window.activeTerminal?.name,
+    });
     if (args?.target === 'terminal') {
       focusTracker?.markTerminalFocused();
     } else if (args?.target === 'editor') {
@@ -502,6 +558,11 @@ function registerCommands(context: vscode.ExtensionContext): void {
 }
 
 function startRecording(targetHint?: 'editor' | 'terminal'): void {
+  extLog('INFO', 'startRecording initiated', {
+    targetHint,
+    activeTargetKind: focusTracker?.getActiveTargetKind(),
+  });
+
   if (!client || !client.isAuthenticated) {
     vscode.window
       .showWarningMessage(

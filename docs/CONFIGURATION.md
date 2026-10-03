@@ -38,7 +38,9 @@ These commands are registered in VS Code's command palette (`Ctrl+Shift+P` / `Cm
 
 | Command ID | Title | Description |
 | :--- | :--- | :--- |
-| `voxcode.toggleDictation` | **VoxCode: Toggle Dictation** | Toggles voice dictation on or off for the active editor or terminal. |
+| `voxcode.toggleDictation` | **VoxCode: Toggle Dictation** | Universal primary toggle: toggles voice dictation on or off for the active editor or terminal dynamically without requiring arguments. |
+| `voxcode.toggleEditorDictation` | **VoxCode: Toggle Editor Dictation** | Dedicated command to toggle dictation targeting the editor pane. |
+| `voxcode.toggleTerminalDictation` | **VoxCode: Toggle Terminal Dictation** | Dedicated command to toggle dictation targeting the integrated terminal. |
 | `voxcode.startRecording` | **VoxCode: Start Dictation** | Starts recording speech and captures editor/terminal focus snapshot. |
 | `voxcode.stopRecording` | **VoxCode: Stop Dictation** | Stops recording and begins Whisper speech-to-text inference. |
 | `voxcode.cancelDictation` | **VoxCode: Cancel Dictation** | Immediately discards the recording, clears ghost text, and resets state without modifying the buffer. |
@@ -47,18 +49,68 @@ These commands are registered in VS Code's command palette (`Ctrl+Shift+P` / `Cm
 | `voxcode.showDaemonLogs` | **VoxCode: Show Daemon Output Logs** | Opens the daemon log output channel in VS Code. |
 | `voxcode.reconnect` | **VoxCode: Reconnect to Bridge** | Forces an immediate reconnect to the WebSocket daemon bridge. |
 | `voxcode.configureKeybinding` | **VoxCode: Configure Keyboard Shortcut** | Opens keyboard shortcuts settings focused on dictation. |
+| `voxcode.installCudaRuntime` | **VoxCode: Download & Install NVIDIA CUDA 12 Runtime** | Downloads and configures CUDA 12 DLLs for GPU acceleration. |
 
 ---
 
 ## 3. Keybindings
 
-The extension ships with default shortcuts for effortless dictation:
+The extension ships with unified, conflict-free shortcuts for effortless dictation:
 
-| Shortcut (Win / Linux) | Shortcut (macOS) | Command | When Expression | Arguments |
+| Shortcut (Win / Linux) | Shortcut (macOS) | Command | When Expression | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.toggleDictation` | `editorTextFocus` | `{"target": "editor"}` |
-| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.toggleDictation` | `terminalFocus` | `{"target": "terminal"}` |
-| `Escape` | `Escape` | `voxcode.cancelDictation` | `voxcode.isRecording` | — |
+| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.toggleDictation` | `!voxcode.isRecording` | Start dictation in the active editor or terminal (target detected dynamically) |
+| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.stopRecording` | `voxcode.isRecording` | Finish recording and begin transcription |
+| `Escape` | `Escape` | `voxcode.cancelDictation` | `voxcode.isRecording` | Discard recording and reset state |
+
+> [!NOTE]
+> Custom keybindings customized in VS Code's Keyboard Shortcuts UI (`keybindings.json`) do NOT require any arguments (`args`). `FocusTracker` dynamically inspects whether your terminal or editor has active focus.
+
+---
+
+## 3.1 Custom Keybinding Guidelines & Terminal Shell Bypass
+
+### Terminal Shell Bypass (`terminal.integrated.commandsToSkipShell`)
+In VS Code's integrated terminal, keystrokes are forwarded directly to the active shell (`PowerShell`, `bash`, `zsh`) unless whitelisted.
+VoxCode automatically registers its dictation commands in `terminal.integrated.commandsToSkipShell` on activation. If you configure a custom shortcut and need to verify manually, ensure your `settings.json` includes:
+
+```json
+{
+  "terminal.integrated.commandsToSkipShell": [
+    "voxcode.toggleDictation",
+    "voxcode.toggleTerminalDictation",
+    "voxcode.cancelDictation",
+    "voxcode.stopRecording"
+  ]
+}
+```
+
+### Keyboard Advice for Windows & Non-US Layouts
+When configuring custom shortcuts on Windows with European, Italian, or German keyboard layouts:
+- **Avoid `Ctrl+Alt+<letter>` on European layouts**: On Windows, `Ctrl+Alt` is physically equivalent to `AltGr`, which conflicts with special character generation (`@`, `#`, `[`, `]`, `{`, `}`).
+- **Avoid `PauseBreak` / `Pausa Interr`**: Windows kernel intercepts `VK_PAUSE` for console break interrupts, and Chromium/VS Code does not reliably emit DOM events for it.
+- **Avoid `PrintScreen`**: On Windows 11, the `PrintScreen` key is hooked globally by the Snipping Tool.
+- **Recommended reliable single-key and chord shortcuts**:
+  - `F8`, `F9`, or `F10`
+  - `Ctrl+Shift+Space`
+  - `Alt+Shift+V`
+  - `Ctrl+F1`
+
+### Example Custom `keybindings.json`:
+```json
+[
+  {
+    "key": "f8",
+    "command": "voxcode.toggleDictation",
+    "when": "!voxcode.isRecording"
+  },
+  {
+    "key": "f8",
+    "command": "voxcode.stopRecording",
+    "when": "voxcode.isRecording"
+  }
+]
+```
 
 > [!NOTE]
 > The `Escape` cancellation keybinding is strictly guarded by `voxcode.isRecording`. When you are not dictating, `Escape` retains its default VS Code behavior.

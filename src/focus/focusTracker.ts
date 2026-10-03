@@ -36,10 +36,15 @@ export class FocusTracker implements vscode.Disposable {
           this.lastFocusedKind = 'editor';
           extLog('DEBUG', 'Active text editor changed', { file: editor.document.fileName });
         } else {
-          // When active text editor loses focus (e.g. Settings, Diff, Output),
-          // do NOT switch to background terminal!
-          this.lastFocusedKind = 'none';
-          extLog('DEBUG', 'Active text editor cleared, set lastFocusedKind to none');
+          // If editor is null, do NOT immediately set lastFocusedKind to 'none'
+          // if an active terminal is present.
+          if (vscode.window.activeTerminal) {
+            this.lastFocusedKind = 'terminal';
+            extLog('DEBUG', 'Active text editor cleared, active terminal present -> set lastFocusedKind to terminal');
+          } else {
+            this.lastFocusedKind = 'none';
+            extLog('DEBUG', 'Active text editor cleared, set lastFocusedKind to none');
+          }
         }
       })
     );
@@ -99,6 +104,8 @@ export class FocusTracker implements vscode.Disposable {
     // Initialize initial state
     if (vscode.window.activeTextEditor) {
       this.lastFocusedKind = 'editor';
+    } else if (vscode.window.activeTerminal) {
+      this.lastFocusedKind = 'terminal';
     }
   }
 
@@ -117,6 +124,33 @@ export class FocusTracker implements vscode.Disposable {
   }
 
   /**
+   * Public diagnostic helper to inspect current focus target without modifying state.
+   */
+  public getActiveTargetKind(): FocusTargetKind {
+    const activeTerminal = vscode.window.activeTerminal;
+    const activeEditor = vscode.window.activeTextEditor;
+
+    if (this.lastFocusedKind === 'terminal' && activeTerminal) {
+      return 'terminal';
+    }
+    if (this.lastFocusedKind === 'editor') {
+      if (activeEditor || (vscode.window.visibleTextEditors && vscode.window.visibleTextEditors.length > 0)) {
+        return 'editor';
+      }
+    }
+    if (!activeEditor && activeTerminal) {
+      return 'terminal';
+    }
+    if (activeEditor || (vscode.window.visibleTextEditors && vscode.window.visibleTextEditors.length > 0)) {
+      return 'editor';
+    }
+    if (activeTerminal) {
+      return 'terminal';
+    }
+    return 'none';
+  }
+
+  /**
    * Captures a snapshot of the current focus target and selections.
    */
   public snapshot(targetHint?: 'editor' | 'terminal'): FocusSnapshot {
@@ -124,50 +158,74 @@ export class FocusTracker implements vscode.Disposable {
       this.lastFocusedKind = targetHint;
     }
 
-    // 1. Explicit terminal focus
-    if (this.lastFocusedKind === 'terminal' && vscode.window.activeTerminal) {
+    const activeTerminal = vscode.window.activeTerminal;
+    const activeEditor = vscode.window.activeTextEditor;
+
+    // 1. Dynamic terminal resolution:
+    // If targetHint is explicitly 'terminal', OR if targetHint is undefined and:
+    // - lastFocusedKind === 'terminal' and activeTerminal is present, OR
+    // - activeTextEditor is null/undefined and activeTerminal is present.
+    const shouldTargetTerminal =
+      targetHint === 'terminal' ||
+      (!targetHint && Boolean(activeTerminal) && (this.lastFocusedKind === 'terminal' || !activeEditor));
+
+    if (shouldTargetTerminal && activeTerminal) {
       this.currentSnapshot = {
         kind: 'terminal',
-        terminal: vscode.window.activeTerminal,
+        terminal: activeTerminal,
       };
       extLog('INFO', 'Captured terminal snapshot', {
-        terminal: vscode.window.activeTerminal.name,
+        terminal: activeTerminal.name,
       });
       return this.currentSnapshot;
     }
 
-    // 2. Explicit editor focus
-    if (this.lastFocusedKind === 'editor') {
-      const targetEditor =
-        vscode.window.activeTextEditor ||
-        (vscode.window.visibleTextEditors.length > 0
-          ? vscode.window.visibleTextEditors[0]
-          : null);
+    // 2. Dynamic editor resolution:
+    // If targetHint is explicitly 'editor' OR targetHint is undefined:
+    // Resolve active editor, or the first visible text editor if an editor was focused or visible.
+    const targetEditor =
+      activeEditor ||
+      (this.lastFocusedKind === 'editor' && vscode.window.visibleTextEditors && vscode.window.visibleTextEditors.length > 0
+        ? vscode.window.visibleTextEditors[0]
+        : null) ||
+      (vscode.window.visibleTextEditors && vscode.window.visibleTextEditors.length > 0
+        ? vscode.window.visibleTextEditors[0]
+        : null);
 
-      if (targetEditor) {
-        const selections =
-          targetEditor.selections && targetEditor.selections.length > 0
-            ? targetEditor.selections
-            : [targetEditor.selection];
+    if ((targetHint === 'editor' || !targetHint) && targetEditor) {
+      const selections =
+        targetEditor.selections && targetEditor.selections.length > 0
+          ? targetEditor.selections
+          : [targetEditor.selection];
 
-        this.currentSnapshot = {
-          kind: 'editor',
-          editor: targetEditor,
-          documentUri: targetEditor.document.uri,
-          selection: new vscode.Selection(targetEditor.selection.anchor, targetEditor.selection.active),
-          selections: selections.map((s) => new vscode.Selection(s.anchor, s.active)),
-          languageId: targetEditor.document.languageId,
-        };
-        extLog('INFO', 'Captured multi-cursor editor snapshot', {
-          file: targetEditor.document.fileName,
-          cursorCount: selections.length,
-        });
-        return this.currentSnapshot;
-      }
+      this.currentSnapshot = {
+        kind: 'editor',
+        editor: targetEditor,
+        documentUri: targetEditor.document.uri,
+        selection: new vscode.Selection(targetEditor.selection.anchor, targetEditor.selection.active),
+        selections: selections.map((s) => new vscode.Selection(s.anchor, s.active)),
+        languageId: targetEditor.document.languageId,
+      };
+      extLog('INFO', 'Captured multi-cursor editor snapshot', {
+        file: targetEditor.document.fileName,
+        cursorCount: selections.length,
+      });
+      return this.currentSnapshot;
     }
 
-    // 3. Fallback: Neither editor nor terminal is focused (e.g. Settings, Diff, Webview).
-    // Do NOT route speech to background terminals!
+    // Fallback if targetHint was undefined and activeTerminal exists
+    if (!targetHint && activeTerminal) {
+      this.currentSnapshot = {
+        kind: 'terminal',
+        terminal: activeTerminal,
+      };
+      extLog('INFO', 'Captured terminal snapshot (fallback)', {
+        terminal: activeTerminal.name,
+      });
+      return this.currentSnapshot;
+    }
+
+    // 3. Fallback: Neither editor nor terminal can be resolved.
     this.currentSnapshot = { kind: 'none' };
     extLog('WARN', 'Captured empty snapshot (no editor or terminal focused)');
     return this.currentSnapshot;

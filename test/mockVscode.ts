@@ -169,8 +169,14 @@ export const mockWindow = {
   terminals: [] as any[],
   state: { focused: true },
 
+  _activeTextEditorListeners: [] as Array<(editor: any) => void>,
+  _activeTerminalListeners: [] as Array<(terminal: any) => void>,
+
   onDidChangeActiveTextEditor(cb: any): Disposable {
-    return new Disposable(() => {});
+    mockWindow._activeTextEditorListeners.push(cb);
+    return new Disposable(() => {
+      mockWindow._activeTextEditorListeners = mockWindow._activeTextEditorListeners.filter((l) => l !== cb);
+    });
   },
   onDidChangeTextEditorSelection(cb: any): Disposable {
     return new Disposable(() => {});
@@ -179,10 +185,25 @@ export const mockWindow = {
     return new Disposable(() => {});
   },
   onDidChangeActiveTerminal(cb: any): Disposable {
-    return new Disposable(() => {});
+    mockWindow._activeTerminalListeners.push(cb);
+    return new Disposable(() => {
+      mockWindow._activeTerminalListeners = mockWindow._activeTerminalListeners.filter((l) => l !== cb);
+    });
   },
   onDidChangeTerminalState(cb: any): Disposable {
     return new Disposable(() => {});
+  },
+  _fireDidChangeActiveTextEditor(editor: any): void {
+    mockWindow.activeTextEditor = editor;
+    for (const cb of mockWindow._activeTextEditorListeners) {
+      cb(editor);
+    }
+  },
+  _fireDidChangeActiveTerminal(terminal: any): void {
+    mockWindow.activeTerminal = terminal;
+    for (const cb of mockWindow._activeTerminalListeners) {
+      cb(terminal);
+    }
   },
   createStatusBarItem(): any {
     return {

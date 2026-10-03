@@ -75,6 +75,16 @@
         "icon": "$(mic)"
       },
       {
+        "command": "voxcode.toggleEditorDictation",
+        "title": "VoxCode: Toggle Editor Dictation",
+        "category": "VoxCode"
+      },
+      {
+        "command": "voxcode.toggleTerminalDictation",
+        "title": "VoxCode: Toggle Terminal Dictation",
+        "category": "VoxCode"
+      },
+      {
         "command": "voxcode.startRecording",
         "title": "VoxCode: Start Dictation",
         "category": "VoxCode"
@@ -130,19 +140,13 @@
         "command": "voxcode.toggleDictation",
         "key": "ctrl+alt+v",
         "mac": "cmd+alt+v",
-        "when": "editorTextFocus",
-        "args": {
-          "target": "editor"
-        }
+        "when": "!voxcode.isRecording"
       },
       {
-        "command": "voxcode.toggleDictation",
+        "command": "voxcode.stopRecording",
         "key": "ctrl+alt+v",
         "mac": "cmd+alt+v",
-        "when": "terminalFocus",
-        "args": {
-          "target": "terminal"
-        }
+        "when": "voxcode.isRecording"
       },
       {
         "command": "voxcode.cancelDictation",
