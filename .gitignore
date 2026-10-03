@@ -54,3 +54,5 @@ __pycache__/
 marketing/
 .vscode/
 session_logs/
+BACKLOG.md
+AGENTS.md
