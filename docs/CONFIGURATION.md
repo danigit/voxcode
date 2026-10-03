@@ -59,12 +59,11 @@ The extension ships with unified, conflict-free shortcuts for effortless dictati
 
 | Shortcut (Win / Linux) | Shortcut (macOS) | Command | When Expression | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.toggleDictation` | `!voxcode.isRecording` | Start dictation in the active editor or terminal (target detected dynamically) |
-| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.stopRecording` | `voxcode.isRecording` | Finish recording and begin transcription |
+| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.toggleDictation` | — | Universal toggle: start or stop dictation in active editor or terminal (dynamically detected) |
 | `Escape` | `Escape` | `voxcode.cancelDictation` | `voxcode.isRecording` | Discard recording and reset state |
 
 > [!NOTE]
-> Custom keybindings customized in VS Code's Keyboard Shortcuts UI (`keybindings.json`) do NOT require any arguments (`args`). `FocusTracker` dynamically inspects whether your terminal or editor has active focus.
+> Custom keybindings customized in VS Code's Keyboard Shortcuts UI (`keybindings.json`) do NOT require any arguments (`args`) or when clauses. `voxcode.toggleDictation` autonomously starts dictation when idle, stops dictation and injects text when recording, and dynamically inspects whether your terminal or editor has active focus.
 
 ---
 
@@ -101,13 +100,7 @@ When configuring custom shortcuts on Windows with European, Italian, or German k
 [
   {
     "key": "f8",
-    "command": "voxcode.toggleDictation",
-    "when": "!voxcode.isRecording"
-  },
-  {
-    "key": "f8",
-    "command": "voxcode.stopRecording",
-    "when": "voxcode.isRecording"
+    "command": "voxcode.toggleDictation"
   }
 ]
 ```

@@ -139,14 +139,7 @@
       {
         "command": "voxcode.toggleDictation",
         "key": "ctrl+alt+v",
-        "mac": "cmd+alt+v",
-        "when": "!voxcode.isRecording"
-      },
-      {
-        "command": "voxcode.stopRecording",
-        "key": "ctrl+alt+v",
-        "mac": "cmd+alt+v",
-        "when": "voxcode.isRecording"
+        "mac": "cmd+alt+v"
       },
       {
         "command": "voxcode.cancelDictation",

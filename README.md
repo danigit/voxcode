@@ -64,8 +64,7 @@ code --profile "work" --install-extension voxcode-0.2.0.vsix
 
 | Keybinding (Win / Linux) | Keybinding (macOS) | Command | When Expression | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.toggleDictation` | `!voxcode.isRecording` | Start dictation in active editor or terminal (dynamically detected) |
-| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.stopRecording` | `voxcode.isRecording` | Stop recording and begin speech-to-text inference |
+| `Ctrl+Alt+V` | `Cmd+Alt+V` | `voxcode.toggleDictation` | — | Toggle dictation on/off in active editor or terminal (dynamically detected) |
 | `Escape` | `Escape` | `voxcode.cancelDictation` | `voxcode.isRecording` | Discard current speech recording |
 
 > **Custom Keybindings**: You can rebind `voxcode.toggleDictation` to any key (e.g. `F8`, `Ctrl+Shift+Space`) in VS Code's Keyboard Shortcuts UI without needing extra `args`. VoxCode automatically resolves the active target between your editor and integrated terminal, and auto-whitelists dictation commands in `terminal.integrated.commandsToSkipShell`.
