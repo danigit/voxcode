@@ -16,6 +16,7 @@ async function buildTests() {
       'test/textDispatcher.test.ts',
       'test/focusTracker.test.ts',
       'test/cudaManager.test.ts',
+      'test/keybindingHelper.test.ts',
     ],
     bundle: true,
     platform: 'node',

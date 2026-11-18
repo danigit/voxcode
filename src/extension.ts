@@ -7,6 +7,7 @@ import { TextDispatcher } from './injector/textDispatcher';
 import { AutoSpacer } from './injector/autoSpacer';
 import { ProcessSupervisor } from './supervisor/processSupervisor';
 import { CudaManager } from './supervisor/cudaManager';
+import { KeybindingManager, getDefaultKeyLabel } from './keybindingHelper';
 import { extLog, initLogger, disposeLogger } from './logger';
 
 let supervisor: ProcessSupervisor | null = null;
@@ -14,6 +15,7 @@ let client: VoxCodeClient | null = null;
 let statusBarItem: vscode.StatusBarItem | null = null;
 let focusTracker: FocusTracker | null = null;
 let ghostTextManager: GhostTextManager | null = null;
+let keybindingManager: KeybindingManager | null = null;
 let extensionContext: vscode.ExtensionContext | null = null;
 
 let isRecording = false;
@@ -32,9 +34,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Automatically ensure terminal commands are not swallowed by integrated terminal shells
   await ensureTerminalCommandsSkipShell();
 
-  // Initialize focus tracker and ghost text decorator
+  // Initialize focus tracker, ghost text decorator, and keybinding manager
   focusTracker = new FocusTracker();
   ghostTextManager = new GhostTextManager();
+  keybindingManager = new KeybindingManager({
+    globalStoragePath: context.globalStorageUri?.fsPath,
+  });
 
   // Create Primary Dictation Status Bar Item
   statusBarItem = vscode.window.createStatusBarItem(
@@ -47,6 +52,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(statusBarItem);
   context.subscriptions.push(focusTracker);
   context.subscriptions.push(ghostTextManager);
+  context.subscriptions.push(keybindingManager);
+  context.subscriptions.push(
+    keybindingManager.onDidChangeKeybinding((newShortcut) => {
+      extLog('INFO', 'Detected keybinding change for voxcode.toggleDictation', {
+        shortcut: newShortcut,
+      });
+      if (lastStatusBarState === 'ready') {
+        updateStatusBar('ready');
+      }
+    })
+  );
 
   // Initialize Process Supervisor
   supervisor = new ProcessSupervisor(context);
@@ -587,7 +603,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
 async function showVoxCodeMenu(): Promise<void> {
   const voxConfig = vscode.workspace.getConfiguration('voxcode');
   const autoSubmit = voxConfig.get<boolean>('terminalAutoSubmit', false);
-  const hotkey = process.platform === 'darwin' ? 'Cmd+Option+V' : 'Ctrl+Alt+V';
+  const hotkey = keybindingManager
+    ? keybindingManager.getToggleDictationLabel()
+    : getDefaultKeyLabel();
 
   const items: Array<vscode.QuickPickItem & { action: () => Promise<void> | void }> = [
     {
@@ -744,11 +762,14 @@ interface StatusMetadata {
 }
 
 let lastStatusMetadata: StatusMetadata = {};
+let lastStatusBarState: StatusBarState = 'offline';
 
 function updateStatusBar(state: StatusBarState, metadata?: StatusMetadata): void {
   if (!statusBarItem) {
     return;
   }
+
+  lastStatusBarState = state;
 
   if (metadata) {
     lastStatusMetadata = { ...lastStatusMetadata, ...metadata };
@@ -758,7 +779,9 @@ function updateStatusBar(state: StatusBarState, metadata?: StatusMetadata): void
   const isCuda = dev === 'cuda';
   const hasFallback = Boolean(lastStatusMetadata.fallback_reason || client?.cudaFallbackReason);
   const model = lastStatusMetadata.model || client?.activeModel;
-  const hotkey = process.platform === 'darwin' ? 'Cmd+Option+V' : 'Ctrl+Alt+V';
+  const hotkey = keybindingManager
+    ? keybindingManager.getToggleDictationLabel()
+    : getDefaultKeyLabel();
 
   switch (state) {
     case 'offline':
@@ -793,12 +816,13 @@ function updateStatusBar(state: StatusBarState, metadata?: StatusMetadata): void
         statusBarItem.text = `$(mic) VoxCode: Ready ${modeBadge}`;
       }
 
+      const formattedShortcut = hotkey.includes('`') ? `\`\` ${hotkey} \`\`` : `\`${hotkey}\``;
       const tooltipMd = new vscode.MarkdownString();
       tooltipMd.isTrusted = true;
       tooltipMd.appendMarkdown(`### $(mic) VoxCode: Native Voice Dictation (Ready)\n\n`);
       tooltipMd.appendMarkdown(`- **Terminal Mode:** \`${autoSubmit ? 'Auto-Enter (Immediate Execution)' : 'Review Mode (Manual Enter)'}\`\n`);
       tooltipMd.appendMarkdown(`- **Speech Engine:** ${model || 'model'} (${isCuda ? 'NVIDIA CUDA' : 'CPU'})\n`);
-      tooltipMd.appendMarkdown(`- **Dictation Shortcut:** \`${hotkey}\`\n\n`);
+      tooltipMd.appendMarkdown(`- **Dictation Shortcut:** ${formattedShortcut}\n\n`);
       tooltipMd.appendMarkdown(`---\n\n*Click to open VoxCode menu & toggle settings.*`);
 
       statusBarItem.tooltip = tooltipMd;
@@ -835,6 +859,8 @@ function updateStatusBar(state: StatusBarState, metadata?: StatusMetadata): void
 }
 
 export function deactivate(): void {
+  keybindingManager?.dispose();
+  keybindingManager = null;
   ghostTextManager?.dispose();
   focusTracker?.dispose();
   client?.dispose();

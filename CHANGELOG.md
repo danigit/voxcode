@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Dynamic Keybinding Label Resolution (`VC-001`)**: Replaced hardcoded `Ctrl+Alt+V` / `Cmd+Option+V` shortcut strings in the QuickPick menu (`voxcode.showMenu`) and status bar tooltip with `KeybindingManager`, which parses VS Code's `keybindings.json` (supporting JSONC comments, trailing commas, platform overrides, and `-command` removals) and watches for live updates, displaying `(Unassigned)` when removed without replacement.
+
+---
+
 ## [0.2.0] - 2026-10-03
 
 ### Added
